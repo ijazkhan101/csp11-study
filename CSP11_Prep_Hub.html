@@ -879,6 +879,27 @@ let first = (location.hash||"").slice(1);
 if(!["home","notes","mcq","res","book","app"].includes(first)){ try { first = localStorage.getItem(HK+".view") || "home"; } catch(e){ first = "home"; } }
 show(["home","notes","mcq","res","book","app"].includes(first) ? first : "home");
 </script>
+<footer class="csp-disc">
+  <p><strong>Disclaimer:</strong> Independent study aid, not affiliated with or endorsed by the Board of Certified Safety Professionals (BCSP). CSP is a BCSP credential. Practice questions are not actual exam questions. See <a href="https://www.bcsp.org" target="_blank" rel="noopener">bcsp.org</a> for current exam details.</p>
+  <p><strong>Credits:</strong> Questions from John's CSP practice videos, with thanks.</p>
+</footer>
+
+<style>
+  .csp-disc{
+    --disc-fg:#5b6b75; --disc-line:#d3dbe0; --disc-link:#0f4c5c;
+    max-width:900px; margin:32px auto 0;
+    padding:16px max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px));
+    border-top:1px solid var(--disc-line);
+    font:13px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    color:var(--disc-fg);
+  }
+  .csp-disc p{margin:0 0 6px}
+  .csp-disc strong{color:inherit; font-weight:600}
+  .csp-disc a{color:var(--disc-link)}
+  @media (prefers-color-scheme: dark){
+    .csp-disc{--disc-fg:#9aabb5; --disc-line:#2a3a44; --disc-link:#6cc1d4}
+  }
+</style>
 
 </body>
 </html>
