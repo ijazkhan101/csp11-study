@@ -1,0 +1,883 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<title>CSP11 Prep Hub</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: sticky tab bar over three views; dashboard = status band, readiness tiles, this week, domain bars, topic tracker */
+:root{
+  --bg:#eef1f3; --surface:#ffffff; --ink:#17232b; --muted:#5b6b75; --line:#d3dbe0;
+  --accent:#0f4c5c; --accent-soft:#e1edf0; --amber:#b36b00; --amber-soft:#fbefd9;
+  --good:#2f7d4f; --good-soft:#e2f1e7; --bad:#b23b3b; --bad-soft:#f8e3e3;
+  --display:"Archivo","Arial Narrow",Arial,sans-serif; --body:"Source Sans 3","Segoe UI",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --barh:56px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f171c; --surface:#16222a; --ink:#e3eaee; --muted:#9aabb5; --line:#2a3a44;
+  --accent:#6cc1d4; --accent-soft:#16343d; --amber:#f0b04a; --amber-soft:#3a2c12;
+  --good:#6fcf95; --good-soft:#163525; --bad:#f08080; --bad-soft:#3d1c1c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f171c; --surface:#16222a; --ink:#e3eaee; --muted:#9aabb5; --line:#2a3a44;
+  --accent:#6cc1d4; --accent-soft:#16343d; --amber:#f0b04a; --amber-soft:#3a2c12;
+  --good:#6fcf95; --good-soft:#163525; --bad:#f08080; --bad-soft:#3d1c1c; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{height:100%}body{min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:clamp(1.5rem,3vw,2rem);font-weight:800}
+h2{font-size:1.15rem;font-weight:700}
+.num,.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar-in{display:flex;align-items:center;gap:12px;min-height:var(--barh);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));flex-wrap:wrap;padding-block:6px}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem;letter-spacing:.01em;white-space:nowrap}
+.brand b{color:var(--accent)}
+.tabs{display:flex;gap:4px;flex-wrap:nowrap;overflow-x:auto;margin-left:auto;min-width:0;scrollbar-width:thin}
+.tab{white-space:nowrap;flex:0 0 auto}
+.tab{border:1px solid transparent;background:none;border-radius:8px;padding:7px 12px;font-weight:600;color:var(--muted)}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--surface)}
+.tab:not([aria-selected="true"]):hover{border-color:var(--line);color:var(--ink)}
+
+.view{display:block}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px;display:grid;gap:20px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+.eyebrow{font-family:var(--display);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.muted{color:var(--muted)}
+.small{font-size:.88rem}
+
+.status{display:grid;grid-template-columns:1.3fr 1fr;gap:20px;align-items:stretch}
+.countdown{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap}
+.big{font-family:var(--mono);font-size:clamp(2.6rem,7vw,3.6rem);font-weight:700;line-height:1;color:var(--accent)}
+.dates{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
+.dates label{display:grid;gap:2px;font-size:.8rem;color:var(--muted)}
+.dates input{border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:5px 8px;color:var(--ink)}
+.weekbar{display:grid;grid-template-columns:repeat(13,1fr);gap:3px;margin-top:14px}
+.weekbar span{height:10px;border-radius:2px;background:var(--line)}
+.weekbar span.done{background:var(--accent)}
+.weekbar span.now{background:var(--amber)}
+.thisweek{display:grid;gap:8px;align-content:start}
+.thisweek h2{font-size:1.25rem}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:3px 10px;font-size:.85rem;font-weight:600}
+button.chip:hover{border-color:var(--accent);color:var(--accent)}
+
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:2px}
+.tile .v{font-family:var(--mono);font-size:1.7rem;font-weight:700;font-variant-numeric:tabular-nums}
+.tile .l{font-size:.85rem;color:var(--muted)}
+
+.doms{display:grid;gap:10px}
+.dom{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center}
+.dom .name{grid-column:1/3}
+.dom .name{font-weight:600;min-width:0}
+.dom .name small{color:var(--muted);font-weight:400}
+.meter{height:12px;border-radius:6px;background:var(--bg);border:1px solid var(--line);overflow:hidden;position:relative}
+.meter i{position:absolute;inset:0 auto 0 0;background:var(--accent)}
+.meter i.r{background:var(--amber);opacity:.55}
+.pill{font-size:.75rem;font-weight:700;border-radius:999px;padding:2px 9px;white-space:nowrap;border:1px solid}
+.p-none{color:var(--muted);border-color:var(--line)}
+.p-prog{color:var(--amber);background:var(--amber-soft);border-color:transparent}
+.p-weak{color:var(--bad);background:var(--bad-soft);border-color:transparent}
+.p-ok{color:var(--good);background:var(--good-soft);border-color:transparent}
+
+.two{display:grid;grid-template-columns:1.5fr 1fr;gap:20px;align-items:start}
+.tracker-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.filters{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
+.filters button{border:1px solid var(--line);background:none;border-radius:6px;padding:3px 9px;font-size:.85rem}
+.filters button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+.dgroup{margin-top:14px}
+.dgroup h3{font-size:.95rem;margin-bottom:6px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.trow{display:grid;grid-template-columns:3rem minmax(0,1fr);row-gap:6px;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--line)}
+.trow .id{font-family:var(--mono);font-weight:700;color:var(--accent)}
+.trow .t{min-width:0}
+.ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.trow .scores{display:flex;gap:8px;align-items:center}
+.trow .t small{display:block;color:var(--muted);font-size:.78rem}
+.trow label{display:flex;gap:4px;align-items:center;font-size:.8rem;color:var(--muted);white-space:nowrap}
+.trow select{border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:2px 4px;font-family:var(--mono);font-size:.85rem}
+.acts{display:flex;gap:4px}
+.acts button{border:1px solid var(--line);background:none;border-radius:6px;padding:3px 8px;font-size:.8rem;font-weight:600}
+.acts button:hover{border-color:var(--accent);color:var(--accent)}
+table.h{width:100%;border-collapse:collapse;font-size:.9rem}
+table.h th,table.h td{text-align:left;padding:6px 4px;border-top:1px solid var(--line)}
+table.h th{font-weight:600;color:var(--muted);font-size:.8rem;border-top:none}
+.tablebox{overflow-x:auto}
+details.plan summary{cursor:pointer;font-weight:600}
+.plist{display:grid;gap:6px;margin-top:10px}
+.plist div{display:grid;grid-template-columns:3.2rem minmax(0,1fr);gap:8px;font-size:.9rem;padding:6px 0;border-top:1px solid var(--line)}
+.plist div.now{background:var(--amber-soft);border-radius:6px;padding-inline:6px}
+.plist b{font-family:var(--mono)}
+
+.frame{display:grid;grid-template-rows:auto 1fr;height:calc(100% - var(--barh))}
+.fbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding-block:8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));border-bottom:1px solid var(--line);background:var(--surface);font-size:.9rem}
+.fbar select,.fbar a{border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:4px 8px;color:var(--ink);text-decoration:none;max-width:100%}
+.fbar a{font-weight:600;color:var(--accent)}
+iframe{border:0;width:100%;height:100%;min-height:70vh;display:block;background:var(--bg)}
+.loading{padding:40px 16px;text-align:center;color:var(--muted)}
+
+.theme{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.theme button{border:0;background:none;padding:6px 10px;font-size:.85rem;font-weight:600;color:var(--muted)}
+.theme button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+/* notes reader */
+.nwrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 60px;display:grid;gap:16px}
+.dchips{display:flex;gap:6px;flex-wrap:wrap}
+.dchips button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:.88rem;font-weight:600}
+.dchips button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.nsearch{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.nsearch input{flex:1;min-width:0;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 12px;color:var(--ink)}
+.nlay{display:grid;grid-template-columns:270px minmax(0,1fr);gap:20px;align-items:start}
+.toclist{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--barh) + 12px);max-height:calc(100dvh - var(--barh) - 40px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px}
+.toclist .dh{font-family:var(--display);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;padding:10px 8px 4px}
+.toclist button{display:grid;grid-template-columns:2.6rem minmax(0,1fr);gap:4px;width:100%;text-align:left;border:0;background:none;border-radius:6px;padding:6px 8px;font-size:.9rem}
+.toclist button:hover{background:var(--bg)}
+.toclist button[aria-current="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.toclist .i{font-family:var(--mono);font-size:.82rem}
+.tselect{display:none;width:100%;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px;color:var(--ink)}
+.doc{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:clamp(18px,4vw,40px);min-width:0}
+.doc h1{margin:4px 0 6px}
+.doc .bpline{font-style:italic;color:var(--muted);margin:0 0 6px}
+.doc .meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.doc section{margin-top:26px}
+.doc h2{font-size:1.1rem;color:var(--accent);padding-bottom:4px;border-bottom:2px solid var(--accent);margin-bottom:10px}
+.doc p,.doc li{max-width:72ch}
+.doc ul{padding-left:20px;margin:0}.doc li{margin-bottom:5px}
+.scen{background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:6px;padding:12px 14px}
+.tipl li::marker{color:var(--amber)}
+.subs{display:grid;gap:8px}
+details.sb{border:1px solid var(--line);border-radius:8px;padding:0 14px}
+details.sb>summary{cursor:pointer;padding:10px 0;font-weight:600;display:flex;gap:8px;flex-wrap:wrap;align-items:baseline}
+details.sb[open]>summary{border-bottom:1px solid var(--line);margin-bottom:8px}
+.bptag{font-size:.7rem;font-weight:700;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:0 7px}
+details.sb .stip{border-left:3px solid var(--amber);padding-left:10px;font-size:.93rem}
+.subtools{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.subtools button,.qtools button{border:1px solid var(--line);background:none;border-radius:6px;padding:4px 10px;font-size:.85rem;font-weight:600}
+.mq{border-top:1px solid var(--line);padding:14px 0}
+.mq .stem{margin:0 0 8px;font-weight:600}
+.mq .stem b{font-family:var(--mono);color:var(--accent);margin-right:4px}
+.mq .opts{display:grid;gap:6px}
+.mq .opt{display:grid;grid-template-columns:1.8rem minmax(0,1fr);gap:6px;text-align:left;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px 10px}
+.mq .opt:hover:not(:disabled){border-color:var(--accent)}
+.mq .opt b{font-family:var(--mono)}
+.mq .opt.ok{border-color:var(--good);background:var(--good-soft)}
+.mq .opt.bad{border-color:var(--bad);background:var(--bad-soft)}
+.mq .opt:disabled{cursor:default;color:var(--ink)}
+.mq .why{margin-top:8px;font-size:.93rem;padding:8px 12px;border-radius:6px;background:var(--bg)}
+.qtools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.qscore{font-family:var(--mono);font-weight:700}
+.pager{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;margin-top:26px}
+.pager button{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px 12px;font-weight:600;max-width:100%;text-align:left}
+.ftable{width:100%;border-collapse:collapse}
+.ftable td{border-top:1px solid var(--line);padding:8px 6px;vertical-align:top}
+.ftable td:first-child{font-weight:600;width:30%}
+.ftable td:last-child{font-family:var(--mono);font-size:.85rem;white-space:pre-wrap}
+.ptable{width:100%;border-collapse:collapse;font-size:.92rem}
+.ptable th,.ptable td{border-top:1px solid var(--line);padding:7px 6px;text-align:left;vertical-align:top}
+.ptable th{color:var(--muted);font-size:.8rem;border-top:none}
+.ptable tr.now td{background:var(--amber-soft)}
+mark{background:var(--amber-soft);color:inherit;border-radius:2px}
+.hits{display:grid;gap:8px}
+.hit{border:1px solid var(--line);border-radius:8px;padding:10px 12px;text-align:left;background:var(--bg);display:grid;gap:2px}
+.hit small{color:var(--muted)}
+/* results */
+.rhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.rhead h1{margin-right:auto}
+.store{font-size:.8rem;font-weight:600;border-radius:999px;padding:3px 10px;border:1px solid var(--line);color:var(--muted)}
+.store.acct{color:var(--good);background:var(--good-soft);border-color:transparent}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:none;padding:6px 11px;font-size:.85rem;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.rtiles{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.rtiles .tile .v{font-size:1.45rem}
+.up{color:var(--good)}.down{color:var(--bad)}
+.chartbox{position:relative}
+.chartbox svg{display:block;width:100%;height:auto;overflow:visible}
+.chartbox .gl{stroke:var(--line);stroke-width:1}
+.chartbox .tgt{stroke:var(--amber);stroke-width:1.5;stroke-dasharray:5 4}
+.chartbox .ln{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round}
+.chartbox .ar{fill:var(--accent);opacity:.08}
+.chartbox .ax{fill:var(--muted);font-size:11px;font-family:var(--mono)}
+.chartbox .dt{fill:var(--accent);stroke:var(--surface);stroke-width:2}
+.chartbox .dt.q{fill:var(--surface);stroke:var(--accent);stroke-width:2}
+.chartbox .hit{fill:transparent;cursor:pointer}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--surface);font-size:.8rem;border-radius:6px;padding:6px 8px;white-space:nowrap;transform:translate(-50%,-115%)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.82rem;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--accent);margin-right:5px;vertical-align:-1px}
+.legend i.q{background:var(--surface);border:2px solid var(--accent)}
+.legend i.t{border-radius:0;height:0;width:16px;border-top:2px dashed var(--amber);vertical-align:3px}
+.dbar{display:grid;grid-template-columns:minmax(0,1fr) 3.4rem 4.2rem;gap:4px 10px;align-items:center;font-size:.9rem;padding:6px 0;border-top:1px solid var(--line)}
+.dbar .meter{grid-column:1/4}
+.dbar .num{text-align:right}
+.ract{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ract button,.rdel{border:1px solid var(--line);background:none;border-radius:6px;padding:5px 10px;font-size:.85rem;font-weight:600}
+.ract button.danger,.rdel:hover{color:var(--bad);border-color:var(--bad)}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--bad-soft);border-radius:8px;padding:8px 12px;font-size:.9rem}
+.empty{border:1px dashed var(--line);border-radius:10px;padding:22px;text-align:center;color:var(--muted)}
+@media (max-width:900px){.rtiles{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:520px){.rtiles{grid-template-columns:repeat(2,1fr)}}
+/* all MCQs */
+.mqbar{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
+.mqbar label{display:grid;gap:2px;font-size:.78rem;color:var(--muted);min-width:0;flex:1 1 9rem}
+.mqbar select,.mqbar input{width:100%}
+.wrap>*{min-width:0}
+.mqbar select,.mqbar input{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 8px;color:var(--ink);max-width:100%}
+
+.mqstats{display:flex;gap:18px;flex-wrap:wrap;font-size:.9rem;color:var(--muted)}
+.mqstats b{color:var(--ink);font-family:var(--mono)}
+.mqprog{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.mqprog i{display:block;height:100%;background:var(--accent)}
+.qcard{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:clamp(16px,3.5vw,32px);display:grid;gap:14px;min-width:0}
+.qmeta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.qnum{font-family:var(--mono);font-weight:700;color:var(--accent);margin-right:6px}
+.qstem{font-size:1.12rem;font-weight:600;line-height:1.45;max-width:75ch;margin:0}
+.qopts{display:grid;gap:8px}
+.qopt{display:grid;grid-template-columns:2rem minmax(0,1fr);gap:8px;align-items:start;text-align:left;border:1.5px solid var(--line);background:var(--bg);border-radius:10px;padding:11px 12px;font-size:1rem}
+.qopt b{font-family:var(--mono);display:grid;place-items:center;width:1.7rem;height:1.7rem;border-radius:50%;border:1px solid var(--line);background:var(--surface);font-size:.85rem}
+.qopt:hover:not(:disabled){border-color:var(--accent)}
+.qopt.ok{border-color:var(--good);background:var(--good-soft)}.qopt.ok b{background:var(--good);color:var(--surface);border-color:var(--good)}
+.qopt.bad{border-color:var(--bad);background:var(--bad-soft)}.qopt.bad b{background:var(--bad);color:var(--surface);border-color:var(--bad)}
+.qopt:disabled{cursor:default;color:var(--ink)}
+.verdict{border-radius:10px;padding:12px 14px;display:grid;gap:4px}
+.verdict.ok{background:var(--good-soft)}.verdict.bad{background:var(--bad-soft)}
+.verdict strong{font-family:var(--display)}
+.qnav{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.qnav button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:9px 14px;font-weight:600}
+.qnav button.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.qnav label{display:flex;gap:6px;align-items:center;font-size:.85rem;color:var(--muted)}
+.qnav input[type=number]{width:6rem;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px;color:var(--ink)}
+.kbd{font-family:var(--mono);font-size:.75rem;border:1px solid var(--line);border-radius:4px;padding:0 4px}
+@media (max-width:900px){.status,.two{grid-template-columns:1fr}.nlay{grid-template-columns:1fr}.toclist{display:none}.tselect{display:block}.tiles{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:640px){
+  .tabs{margin-left:0;width:100%;order:3}.tab{padding:7px 10px;font-size:.88rem}.theme{margin-left:auto}
+}
+.ctl{grid-column:2;justify-content:flex-start}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+
+
+<header class="bar"><div class="bar-in">
+  <div class="brand">CSP<b>11</b> Prep Hub</div>
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button class="tab" role="tab" id="tab-home" data-v="home">Dashboard</button>
+    <button class="tab" role="tab" id="tab-notes" data-v="notes">Study Notes</button>
+    <button class="tab" role="tab" id="tab-mcq" data-v="mcq">All MCQs</button>
+    <button class="tab" role="tab" id="tab-res" data-v="res">My Results</button>
+    <button class="tab" role="tab" id="tab-book" data-v="book">Study Book (PDF)</button>
+    <button class="tab" role="tab" id="tab-app" data-v="app">Study Guide &amp; Exam</button>
+  </nav>
+  <div class="theme" role="group" aria-label="Colour theme"><button type="button" id="thLight" data-th="light">Light</button><button type="button" id="thDark" data-th="dark">Dark</button></div>
+</div></header>
+
+<main>
+<section class="view" id="v-home" role="tabpanel" aria-labelledby="tab-home">
+ <div class="wrap">
+  <div class="status">
+   <div class="panel">
+    <span class="eyebrow">Exam countdown</span>
+    <div class="countdown"><div class="big" id="days">–</div><div><div style="font-weight:700">days to your CSP11 exam</div><div class="muted small" id="weekTxt"></div></div></div>
+    <div class="weekbar" id="weekbar" aria-hidden="true"></div>
+    <div class="dates">
+      <label for="dStart">Plan start date<input type="date" id="dStart"></label>
+      <label for="dExam">Exam date<input type="date" id="dExam"></label>
+    </div>
+   </div>
+   <div class="panel thisweek" id="thisWeek"></div>
+  </div>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="two">
+   <div class="panel" style="min-width:0">
+    <div class="tracker-head"><h2>Topic tracker</h2><span class="muted small">Mark notes read and record your 10-question scores from the book.</span>
+     <div class="filters" role="group" aria-label="Filter topics" id="filters">
+      <button type="button" data-f="all" aria-pressed="true">All</button>
+      <button type="button" data-f="todo">Not started</button>
+      <button type="button" data-f="weak">Needs work</button>
+      <button type="button" data-f="ok">Mastered</button>
+     </div></div>
+    <div id="tracker"></div>
+   </div>
+   <div style="display:grid;gap:20px;min-width:0">
+    <div class="panel"><h2 style="margin-bottom:12px">Domain readiness</h2><div class="doms" id="doms"></div>
+      <p class="muted small" style="margin:12px 0 0">Bar = share of topics mastered (8/10 or better on both attempts). Faint bar = topics started. A domain is cleared when every topic is mastered.</p></div>
+    <div class="panel"><h2 style="margin-bottom:8px">Recent attempts</h2><div id="mocks"></div></div>
+    <div class="panel"><details class="plan" id="planBox"><summary>Full 13-week plan</summary><div class="plist" id="plist"></div></details></div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="view" id="v-notes" role="tabpanel" aria-labelledby="tab-notes" hidden>
+ <div class="nwrap">
+  <div class="dchips" role="group" aria-label="Filter by domain" id="nDoms"></div>
+  <div class="nsearch"><label for="nq" class="muted small">Search notes</label><input id="nq" type="search" placeholder="Search every topic, sub-topic and question: e.g. RACI, WBGT, sling angle, Kirkpatrick" autocomplete="off"><button type="button" class="chip" id="nqClear">Clear</button></div>
+  <select class="tselect" id="nSel" aria-label="Choose a topic"></select>
+  <div class="nlay"><nav class="toclist" id="nToc" aria-label="Topics"></nav><article class="doc" id="nDoc"><div class="loading">Loading the study notes…</div></article></div>
+ </div>
+</section>
+
+<section class="view" id="v-mcq" role="tabpanel" aria-labelledby="tab-mcq" hidden>
+ <div class="wrap" style="gap:14px">
+  <div class="rhead"><h1 id="mqTitle">All MCQs</h1><span class="muted small">John's bank, My research, trainer and study book questions in one place</span></div>
+  <div class="mqbar">
+   <label for="mqSrc">Source<select id="mqSrc"></select></label>
+   <label for="mqDom">Domain<select id="mqDom"></select></label>
+   <label for="mqTop">Topic<select id="mqTop"></select></label>
+   <label for="mqOrd">Order<select id="mqOrd"><option value="seq">In order</option><option value="shuf">Shuffled</option><option value="new">Not answered yet</option><option value="wrong">My wrong answers</option><option value="calc">Calculations only</option></select></label>
+   <label for="mqQ">Search<input id="mqQ" type="search" placeholder="Word in question or options" autocomplete="off"></label>
+  </div>
+  <div class="mqstats" id="mqStats"></div>
+  <div class="mqprog" aria-hidden="true"><i id="mqBar" style="width:0"></i></div>
+  <div id="mqCard" class="qcard"><div class="loading">Loading the questions…</div></div>
+  <div class="qnav">
+   <button type="button" id="mqPrev">← Previous</button><button type="button" class="primary" id="mqNext">Next →</button>
+   <label for="mqJump">Go to #<input type="number" id="mqJump" min="1" inputmode="numeric"></label>
+   <label><input type="checkbox" id="mqAuto"> Move on by itself when I'm right</label>
+   <span style="flex:1"></span>
+   <button type="button" id="mqSave">Save session to My Results</button><button type="button" id="mqReset">Reset answers</button>
+  </div>
+  <div id="mqMsg"></div>
+  <p class="muted small" style="margin:0">Keys: <span class="kbd">A</span>–<span class="kbd">D</span> or <span class="kbd">1</span>–<span class="kbd">4</span> to answer, <span class="kbd">→</span> or <span class="kbd">Enter</span> for next, <span class="kbd">←</span> for previous. Your answers are kept in this browser until you reset them.</p>
+ </div>
+</section>
+
+<section class="view" id="v-res" role="tabpanel" aria-labelledby="tab-res" hidden>
+ <div class="wrap">
+  <div class="rhead"><h1>My Results</h1><span class="store" id="rStore">Saved in this browser</span>
+   <div class="seg" role="group" aria-label="Time range" id="rRange"><button type="button" data-rr="7">7 days</button><button type="button" data-rr="30">30 days</button><button type="button" data-rr="0">All</button></div></div>
+  <p class="muted small" style="margin:-8px 0 0" id="rNote"></p>
+  <div class="rtiles" id="rTiles"></div>
+  <div class="two">
+   <div class="panel" style="min-width:0"><h2>Score per attempt</h2><div class="chartbox" id="rChart"></div>
+     <div class="legend"><span><i></i>Mock exam or drill</span><span><i class="q"></i>Topic quiz (Study Notes)</span><span><i class="t"></i>80% target</span></div></div>
+   <div class="panel" style="min-width:0"><h2>By domain</h2><p class="muted small" style="margin:4px 0 6px">Average in this range. Change compares your first and second half of attempts.</p><div id="rDoms"></div></div>
+  </div>
+  <div class="panel" style="min-width:0"><div class="rhead" style="margin-bottom:8px"><h2 style="margin-right:auto">All attempts</h2>
+    <div class="ract"><button type="button" id="rExport">Export JSON</button><label class="chip" for="rImport" style="cursor:pointer">Import JSON</label><input type="file" id="rImport" accept=".json,application/json" hidden><button type="button" class="danger" id="rClear">Delete history</button></div></div>
+   <div id="rConfirm"></div><div class="tablebox" id="rTable"></div></div>
+ </div>
+</section>
+
+<section class="view frame" id="v-book" role="tabpanel" aria-labelledby="tab-book" hidden>
+ <div class="fbar"><label for="bookJump" class="muted">Go to</label>
+  <select id="bookJump"><option value="">Contents</option></select>
+  <span class="muted small">Same content and page numbers as the printed book.</span>
+  <a href="CSP11_Study_Book.pdf" id="pdfLink" target="_blank" rel="noopener" style="margin-left:auto">Open the PDF</a></div>
+ <div id="bookHost"><div class="loading">Loading the study book…</div></div>
+</section>
+
+<section class="view frame" id="v-app" role="tabpanel" aria-labelledby="tab-app" hidden>
+ <div id="appHost" style="grid-row:1/3"><div class="loading">Loading the study guide and mock exam…</div></div>
+</section>
+</main>
+
+<script>
+const TOPICS = [["1.1","Prevention through Design (PtD)",7],["1.2","Process Safety",12],["1.3","Common Workplace Hazards",17],["1.4","Facility Life Safety",23],["1.5","Fleet Safety",27],["1.6","Materials Handling",32],["1.7","Tools, Machines and Equipment",37],["2.1","Benchmarking and Gap Analysis",44],["2.2","Performance Standards and Action Planning",49],["2.3","EHS Culture: Measure, Analyze and Improve",53],["2.4","Incident Investigation and Root Cause Analysis",58],["2.5","Management of Change (MOC)",63],["2.6","System Safety Analysis",68],["2.7","Leading and Lagging Indicators",73],["2.8","EHS Management and Audit Systems",77],["2.9","Plans, Systems and Policies",82],["2.10","Document Retention and Management",87],["2.11","Budgeting, Finance and Economic Analysis",93],["2.12","Management and Leadership",98],["2.13","Project Management",103],["2.14","Data Analysis",107],["3.1","Safety Risk Evaluation Process",114],["3.2","Risk Management Strategies and Hierarchy of Controls",119],["3.3","Financial Risk Mitigation Strategies",124],["3.4","Risk Analysis: Identify, Rank and Monitor",130],["4.1","Emergency Response Plans",136],["4.2","Disaster Response and Recovery",143],["4.3","Fire Prevention, Protection and Suppression",148],["4.4","Hazardous Materials Transportation and Security",155],["4.5","Workplace Violence Prevention",160],["5.1","Environmental Protection and Pollution Prevention",166],["5.2","Hazardous Materials Management",173],["5.3","Waste Management",180],["5.4","Sustainability",185],["5.5","Environmental Issues and ESG",190],["6.1","Occupational Exposure: Anticipate, Recognize, Evaluate, Control",197],["6.2","Public Health and Epidemiology",210],["6.3","Toxicology",216],["6.4","Ergonomics and Human Factors",224],["6.5","Chemistry: Containment Volume and Storage Requirements",230],["6.6","Physics: Energy, Weight, Force and Stress",235],["7.1","Training Needs Assessment",241],["7.2","Training Program Development",246],["7.3","Continuous Improvement of Training",252],["7.4","Training Effectiveness Evaluation",257],["7.5","Education and Training Methods",262],["7.6","Adult Learning Principles",267]];
+const DOMS = [[1,"Advanced Application of Safety Principles",25],[2,"Program Management",25],[3,"Risk Management",15],[4,"Emergency Management",9],[5,"Environmental Management",6],[6,"Occupational Health and Applied Science",10],[7,"Training",10]];
+const PLAN = [
+ ["Diagnostic + Domain 2 (part 1)",["2.1","2.2","2.3","2.4","2.5","2.6","2.7"],"Take a 50-question mixed quiz in the app for a baseline, then study 2.1 to 2.7."],
+ ["Domain 2 (part 2)",["2.8","2.9","2.10","2.11","2.12","2.13","2.14"],"ISO systems, records, finance, leadership, project management, statistics. Do every calculation by hand."],
+ ["Domain 1 (part 1)",["1.1","1.2","1.3","1.4"],"Prevention through Design, process safety, common hazards, life safety."],
+ ["Domain 1 (part 2) + D1 test",["1.5","1.6","1.7"],"Fleet, materials handling and rigging, tools and machines. Weekend: 50-question D1 + D2 timed test."],
+ ["Domain 3",["3.1","3.2","3.3","3.4"],"Risk evaluation, JHA/PHA, hierarchy of controls, financial risk, ranking."],
+ ["Domain 6 (part 1)",["6.1","6.2","6.3"],"Exposure, noise, radiation, heat, ventilation, toxicology, epidemiology. Drill formulas daily."],
+ ["Domain 6 (part 2) + formulas",["6.4","6.5","6.6"],"Ergonomics, chemistry, physics. Redo every calculation you have missed so far."],
+ ["Domain 4",["4.1","4.2","4.3","4.4","4.5"],"ERPs, ICS and continuity, fire, hazmat transportation, workplace violence."],
+ ["Domain 7",["7.1","7.2","7.3","7.4","7.5","7.6"],"Needs assessment, ADDIE, Kirkpatrick, methods, adult learning. Weekend: 100-question mock."],
+ ["Domain 5 + Mock exam 1",["5.1","5.2","5.3","5.4","5.5"],"Environmental topics. Weekend: full 200-question timed mock."],
+ ["Weak-area retraining",[],"Re-read and redo every topic marked Needs work, then 25-question drills in the app."],
+ ["Mock exam 2 + calculations",[],"Second full timed mock. Target 75-80%+. Re-drill calculations and your error log."],
+ ["Final review",[],"Light mixed quizzes, CSP tips and traps for every topic, formula sheet. Rest before the exam."]];
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const HK = "csp11hub.v1";
+function load(){ try { return JSON.parse(localStorage.getItem(HK)) || {}; } catch(e){ return {}; } }
+function save(){ try { localStorage.setItem(HK, JSON.stringify(S)); } catch(e){} }
+const S = Object.assign({start:"2026-10-18", exam:"2027-01-18", t:{}, filter:"all"}, load());
+function appStore(){ try { return JSON.parse(localStorage.getItem("csp11sim.v1")) || {}; } catch(e){ return {}; } }
+
+const tp = id => S.t[id] || (S.t[id] = {read:false, s1:"", s2:""});
+function status(id){
+  const x = S.t[id]; if(!x || (!x.read && x.s1==="" && x.s2==="")) return "todo";
+  const sc = [x.s1,x.s2].filter(v=>v!=="").map(Number);
+  if(sc.length===2 && sc.every(v=>v>=8)) return "ok";
+  if(sc.length && Math.max(...sc) < 8) return "weak";
+  return "prog";
+}
+const PILL = {todo:["p-none","Not started"],prog:["p-prog","In progress"],weak:["p-weak","Needs work"],ok:["p-ok","Mastered"]};
+const pill = s => `<span class="pill ${PILL[s][0]}">${PILL[s][1]}</span>`;
+const day = s => { const d = new Date(s+"T00:00:00"); return isNaN(d) ? null : d; };
+function weekNow(){ const st = day(S.start); if(!st) return 1; return Math.min(13, Math.max(1, Math.floor((Date.now()-st)/864e5/7)+1)); }
+
+function renderStatus(){
+  const ex = day(S.exam), days = ex ? Math.ceil((ex - new Date(new Date().toDateString()))/864e5) : null;
+  $("days").textContent = days===null ? "–" : Math.max(0,days);
+  const w = weekNow();
+  $("weekTxt").textContent = `Week ${w} of 13 in your study plan`;
+  $("weekbar").innerHTML = PLAN.map((_,i)=>`<span class="${i+1<w?"done":i+1===w?"now":""}"></span>`).join("");
+  const p = PLAN[w-1];
+  const ids = p[1].length ? p[1] : TOPICS.filter(t=>status(t[0])==="weak").map(t=>t[0]);
+  $("thisWeek").innerHTML = `<span class="eyebrow">This week · Week ${w}</span><h2>${esc(p[0])}</h2><p class="muted" style="margin:0">${esc(p[2])}</p>
+    <div class="chips">${ids.length ? ids.map(id=>`<button type="button" class="chip" data-book="${id}" title="Open in the study book">${id} ${pillDot(id)}</button>`).join("") : '<span class="muted small">No topics marked Needs work yet.</span>'}</div>`;
+  $("plist").innerHTML = PLAN.map((p,i)=>`<div class="${i+1===w?"now":""}"><b>W${i+1}</b><span><strong>${esc(p[0])}</strong>${p[1].length?` · ${p[1].join(", ")}`:""}<br><span class="muted">${esc(p[2])}</span></span></div>`).join("");
+}
+function pillDot(id){ const s=status(id); return s==="ok"?"✓":s==="weak"?"!":""; }
+
+function renderTiles(){
+  const st = TOPICS.map(t=>status(t[0]));
+  const scores = TOPICS.flatMap(t=>{const x=S.t[t[0]];return x?[x.s1,x.s2].filter(v=>v!=="").map(Number):[]});
+  const avg = scores.length ? (scores.reduce((a,b)=>a+b,0)/scores.length*10).toFixed(0)+"%" : "–";
+  const a = appStore(), hist = REC.slice().sort((x,y)=>x.ts-y.ts), last = hist[hist.length-1];
+  const tiles = [
+    [st.filter(s=>s==="ok").length+" / "+TOPICS.length,"topics mastered"],
+    [avg,"average topic quiz score"],
+    [hist.length ? last.pct.toFixed(0)+"%" : "–", hist.length ? `last attempt (${hist.length} recorded)` : "no attempts yet"],
+    [(a.missed||[]).length,"missed questions saved in the app"]];
+  $("tiles").innerHTML = tiles.map(([v,l])=>`<div class="tile"><span class="v">${v}</span><span class="l">${l}</span></div>`).join("");
+  $("mocks").innerHTML = hist.length ? `<div class="tablebox"><table class="h"><thead><tr><th>Date</th><th>Type</th><th>Score</th></tr></thead><tbody>${hist.slice(-8).reverse().map(h=>`<tr><td>${fdate(h.ts)}</td><td>${esc(h.type)}</td><td class="num">${h.pct.toFixed(1)}%</td></tr>`).join("")}</tbody></table></div><p class="small" style="margin:8px 0 0"><button type="button" class="chip" data-v="res">See all results and trends</button></p>`
+    : `<p class="muted small" style="margin:0">Your scores appear here after you finish a mock exam, a drill, or a topic quiz.</p>`;
+}
+
+function renderDoms(){
+  $("doms").innerHTML = DOMS.map(([d,n,w])=>{
+    const ts = TOPICS.filter(t=>t[0].startsWith(d+".")), st = ts.map(t=>status(t[0]));
+    const ok = st.filter(s=>s==="ok").length, started = st.filter(s=>s!=="todo").length;
+    const ds = ok===ts.length ? "ok" : st.includes("weak") ? "weak" : started ? "prog" : "todo";
+    const lab = ds==="ok" ? '<span class="pill p-ok">Cleared</span>' : pill(ds);
+    return `<div class="dom"><div class="name">D${d} ${esc(n)} <small>· ${w}% · ${ok}/${ts.length}</small></div>
+      <div class="meter" role="img" aria-label="${ok} of ${ts.length} topics mastered"><i class="r" style="width:${started/ts.length*100}%"></i><i style="width:${ok/ts.length*100}%"></i></div>${lab}</div>`;
+  }).join("");
+}
+
+function renderTracker(){
+  const f = S.filter;
+  document.querySelectorAll("#filters button").forEach(b=>b.setAttribute("aria-pressed", b.dataset.f===f));
+  const opt = v => `<option value="">–</option>`+[...Array(11).keys()].map(n=>`<option${String(n)===v?" selected":""}>${n}</option>`).join("");
+  $("tracker").innerHTML = DOMS.map(([d,n,w])=>{
+    const rows = TOPICS.filter(t=>t[0].startsWith(d+".")).filter(t=>{const s=status(t[0]);return f==="all"||(f==="todo"?s==="todo":f==="weak"?s==="weak":s==="ok")});
+    if(!rows.length) return "";
+    return `<div class="dgroup"><h3>Domain ${d} · ${esc(n)} <span class="muted small">${w}%</span></h3>${rows.map(([id,title,pg])=>{const x=S.t[id]||{read:false,s1:"",s2:""};return `
+      <div class="trow"><span class="id">${id}</span><span class="t">${esc(title)}<small>Book page ${pg}</small></span>
+       <span class="ctl"><span class="scores"><label><input type="checkbox" id="r-${id}" data-id="${id}" data-k="read"${x.read?" checked":""}>Notes</label>
+       <label for="a-${id}">Try 1<select id="a-${id}" data-id="${id}" data-k="s1">${opt(x.s1)}</select></label>
+       <label for="b-${id}">Try 2<select id="b-${id}" data-id="${id}" data-k="s2">${opt(x.s2)}</select></label></span>
+       ${pill(status(id))}
+       <span class="acts"><button type="button" data-book="${id}">Read</button><button type="button" data-app="${id}">Practice</button></span></span></div>`}).join("")}</div>`;
+  }).join("") || `<p class="muted">No topics match this filter.</p>`;
+}
+function renderAll(){ renderStatus(); renderTiles(); renderDoms(); renderTracker(); }
+
+document.addEventListener("change", e=>{
+  const el = e.target;
+  if(el.dataset.id){ const x = tp(el.dataset.id); x[el.dataset.k] = el.type==="checkbox" ? el.checked : el.value; save(); renderAll(); }
+  if(el.id==="dStart"){ S.start = el.value; save(); renderStatus(); }
+  if(el.id==="dExam"){ S.exam = el.value; save(); renderStatus(); }
+  if(el.id==="bookJump" && el.value!==undefined){ bookGo(el.value); }
+});
+document.addEventListener("click", e=>{
+  const b = e.target.closest("button"); if(!b) return;
+  if(b.dataset.f){ S.filter = b.dataset.f; save(); renderTracker(); }
+  if(b.dataset.book){ show("notes"); notesOpen(b.dataset.book); }
+  if(b.dataset.th){ setTheme(b.dataset.th); }
+  if(b.dataset.app){ show("app"); appGo(b.dataset.app); }
+  if(b.dataset.v){ show(b.dataset.v); }
+});
+
+/* theme */
+function effTheme(){ const t = document.documentElement.getAttribute("data-theme"); if(t) return t; return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"; }
+function applyTheme(){
+  const t = effTheme();
+  $("thLight").setAttribute("aria-pressed", t==="light"); $("thDark").setAttribute("aria-pressed", t==="dark");
+  document.querySelectorAll("iframe").forEach(f=>{ try{ f.contentDocument.documentElement.setAttribute("data-theme", t); }catch(e){} });
+}
+function setTheme(t){ document.documentElement.setAttribute("data-theme", t); try{ localStorage.setItem(HK+".theme", t); }catch(e){} applyTheme(); }
+try{ const t = localStorage.getItem(HK+".theme"); if(t) document.documentElement.setAttribute("data-theme", t); }catch(e){}
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
+
+/* files: inline in the single-file build, fetched next to the page otherwise */
+function getText(name){
+  const F = window.__FILES;
+  if(F && typeof F[name]==="string") return Promise.resolve(F[name]);
+  return fetch(name).then(r=>{ if(!r.ok) throw new Error(r.status); return r.text(); });
+}
+if(window.__PDF64){ const a = $("pdfLink"); a.removeAttribute("target"); a.addEventListener("click", e=>{ e.preventDefault();
+  try{ const bin = atob(window.__PDF64), u8 = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
+    const url = URL.createObjectURL(new Blob([u8],{type:"application/pdf"})); const w = window.open(url,"_blank");
+    if(!w){ const l=document.createElement("a"); l.href=url; l.download="CSP11_Study_Book.pdf"; document.body.appendChild(l); l.click(); l.remove(); } }catch(err){} }); }
+/* embedded pages: fetched once and shown in same-origin frames */
+const frames = {};
+function mount(key, file, host){
+  if(frames[key]) return frames[key];
+  frames[key] = getText(file).then(html=>new Promise(res=>{
+    const f = document.createElement("iframe"); f.title = key==="book" ? "CSP11 Study Book" : "CSP11 Study Guide and Mock Exam";
+    f.addEventListener("load", ()=>{ try{ f.contentDocument.documentElement.setAttribute("data-theme", effTheme()); }catch(e){} res(f); }, {once:true});
+    f.srcdoc = html; $(host).replaceChildren(f);
+  })).catch(()=>{ $(host).innerHTML = `<div class="loading">This page could not load. Reload the hub to try again.</div>`; frames[key]=null; });
+  return frames[key];
+}
+function bookGo(id){
+  mount("book","book.html","bookHost").then(f=>{ if(!f) return; const d=f.contentDocument;
+    const el = id ? d.getElementById("t"+id) : d.querySelector("h1");
+    if(el){ const pg = el.previousElementSibling && el.previousElementSibling.classList.contains("pgno") ? el.previousElementSibling : el; pg.scrollIntoView({block:"start"}); }
+    $("bookJump").value = id||""; });
+}
+function appGo(id){
+  mount("app","app.html","appHost").then(f=>{ if(!f) return; try{ f.contentWindow.openTopic(id); }catch(e){} });
+}
+function show(v){
+  ["home","notes","mcq","res","book","app"].forEach(k=>{ $("v-"+k).hidden = k!==v; $("tab-"+k).setAttribute("aria-selected", k===v); });
+  if(v==="book") mount("book","book.html","bookHost");
+  if(v==="app") mount("app","app.html","appHost").then(()=>{});
+  if(v==="home") renderAll();
+  if(v==="notes") notesInit();
+  if(v==="res") renderResults();
+  if(v==="mcq") mqInit();
+  try { history.replaceState(null,"","#"+v); } catch(e){}
+  try { localStorage.setItem(HK+".view", v); } catch(e){}
+  window.scrollTo(0,0);
+}
+
+/* study notes (HTML version of the book) */
+let N = null, nDom = 0, nCur = "start", nLoading = null;
+const DOMLAB = Object.fromEntries(DOMS.map(d=>[d[0],d[1]]));
+function hl(str, q){ str = esc(str); const w = (q||"").trim().split(/\s+/).filter(x=>x.length>1).map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")); return w.length ? str.replace(new RegExp("("+w.join("|")+")","gi"),"<mark>$1</mark>") : str; }
+function notesInit(){
+  if(N || nLoading) return nLoading;
+  nLoading = getText("notes.json").then(t=>JSON.parse(t)).then(j=>{ N = j; N.byId = Object.fromEntries(N.topics.map(t=>[t.id,t]));
+    try{ const st = JSON.parse(localStorage.getItem(HK+".notes")||"{}"); if(st.cur && (N.byId[st.cur]||["start","formulas"].includes(st.cur))){ nCur = st.cur; nDom = st.dom||0; } }catch(e){}
+    nRender(); }).catch(()=>{ $("nDoc").innerHTML = '<div class="loading">The notes could not load. Reload the hub to try again.</div>'; nLoading = null; });
+  return nLoading;
+}
+function notesOpen(id){ notesInit().then(()=>{ nDom = N.byId[id] ? N.byId[id].d : nDom; nCur = id; $("nq").value = ""; nRender(); window.scrollTo(0,0); }); }
+function nRememb(){ try{ localStorage.setItem(HK+".notes", JSON.stringify({cur:nCur, dom:nDom})); }catch(e){} }
+function nList(){ return N.topics.filter(t=>!nDom || t.d===nDom); }
+function nRender(){
+  if(!N) return;
+  $("nDoms").innerHTML = `<button type="button" data-nd="0" aria-pressed="${nDom===0}">All domains</button>` +
+    DOMS.map(([d,n,w])=>`<button type="button" data-nd="${d}" aria-pressed="${nDom===d}">D${d} ${esc(n)} · ${w}%</button>`).join("") +
+    `<button type="button" data-ngo="start" aria-pressed="${nCur==="start"}">Start here + plan</button><button type="button" data-ngo="formulas" aria-pressed="${nCur==="formulas"}">Formula sheet</button>`;
+  const L = nList();
+  let toc = "", sel = `<option value="start">Start here: how to use + 13-week plan</option>`;
+  DOMS.filter(([d])=>!nDom||d===nDom).forEach(([d,n])=>{
+    toc += `<div class="dh">Domain ${d}</div>` + L.filter(t=>t.d===d).map(t=>`<button type="button" data-ngo="${t.id}" aria-current="${nCur===t.id}"><span class="i">${t.id}</span><span>${esc(t.title)}</span></button>`).join("");
+    sel += `<optgroup label="Domain ${d} · ${esc(n)}">` + L.filter(t=>t.d===d).map(t=>`<option value="${t.id}"${nCur===t.id?" selected":""}>${t.id} ${esc(t.title)}</option>`).join("") + `</optgroup>`;
+  });
+  sel += `<option value="formulas"${nCur==="formulas"?" selected":""}>Formula sheet</option>`;
+  $("nToc").innerHTML = `<button type="button" data-ngo="start" aria-current="${nCur==="start"}"><span class="i">0</span><span>Start here + plan</span></button>` + toc + `<div class="dh">Appendix</div><button type="button" data-ngo="formulas" aria-current="${nCur==="formulas"}"><span class="i">A</span><span>Formula sheet</span></button>`;
+  $("nSel").innerHTML = sel; if(nCur==="start") $("nSel").value = "start";
+  const q = $("nq").value.trim();
+  $("nDoc").innerHTML = q ? nSearch(q) : nCur==="start" ? nStart() : nCur==="formulas" ? nFormulas() : nTopic(N.byId[nCur]);
+  nRememb();
+}
+function nStart(){
+  const w = weekNow();
+  return `<span class="eyebrow">Start here</span><h1>How to use the study notes</h1>
+  <p>Each competency follows the same seven sections as the printed book: definition, simple explanation, key points, a real work scenario, exam tips, every blueprint point, and ten CSP-style questions. Read sections 1 to 6, then answer the ten questions before you look at any answer.</p>
+  <section><h2>Daily routine (about 2 hours on weekdays)</h2><table class="ptable"><thead><tr><th>Time</th><th>Activity</th></tr></thead><tbody>
+  <tr><td class="num">45 min</td><td>Read one competency (sections 1 to 6). Note numbers, standards and formulas.</td></tr>
+  <tr><td class="num">20 min</td><td>Answer its 10 questions. Watch for BEST, FIRST, MOST, EXCEPT and NOT.</td></tr>
+  <tr><td class="num">15 min</td><td>Read every explanation and record your score in the Dashboard tracker.</td></tr>
+  <tr><td class="num">40 min</td><td>In Study Guide &amp; Exam: "Timed drill on this topic" (25 questions).</td></tr></tbody></table>
+  <p><b>Weekends:</b> review the week, redo your misses, and take a 50 to 100 question mixed quiz. Exam pace is about 1.65 minutes per question (200 questions in 5.5 hours).</p>
+  <p><b>Targets:</b> 8/10 or better on every topic set, 80%+ on domain tests, 85%+ on Domain 6 calculations.</p></section>
+  <section><h2>13-week study plan</h2><div class="tablebox"><table class="ptable"><thead><tr><th>Week</th><th>Focus</th><th>Competencies</th><th>What to do</th></tr></thead><tbody>
+  ${N.plan.map(([a,b,c,d])=>`<tr class="${+a===w?"now":""}"><td class="num">${a}</td><td>${esc(b)}</td><td>${esc(c)}</td><td>${esc(d)}</td></tr>`).join("")}</tbody></table></div></section>
+  <section><h2>Exam weighting (CSP11 blueprint)</h2><table class="ptable"><thead><tr><th>Domain</th><th>Weight</th><th>About how many of 200*</th></tr></thead><tbody>
+  ${DOMS.map(([d,n,w])=>`<tr><td><button type="button" class="chip" data-nd="${d}">D${d}</button> ${esc(n)}</td><td class="num">${w}%</td><td class="num">~${w*2}</td></tr>`).join("")}</tbody></table>
+  <p class="muted small">*Estimated from the weights. Check bcsp.org for current exam details.</p></section>`;
+}
+function nFormulas(){
+  return `<span class="eyebrow">Appendix A</span><h1>CSP formula sheet</h1><p class="muted">The BCSP exam provides its own reference sheet; check bcsp.org for the current version. Learn when to use each formula, not only the formula.</p>
+  <div class="tablebox"><table class="ftable"><tbody>${N.formulas.map(([a,b])=>`<tr><td>${esc(a)}</td><td>${esc(b)}</td></tr>`).join("")}</tbody></table></div>`;
+}
+function nTopic(t){
+  const L = N.topics, i = L.indexOf(t), prev = L[i-1], next = L[i+1], nb = t.subs.filter(u=>u[4]).length;
+  return `<span class="eyebrow">Domain ${t.d} · ${esc(DOMLAB[t.d])} · Competency ${t.id}</span><h1>${esc(t.title)}</h1>
+  <p class="bpline">CSP11 blueprint: ${esc(t.bp)}</p>
+  <div class="meta"><span class="chip">Printed book page ${t.page}</span><button type="button" class="chip" data-app="${t.id}">Practice in the exam app</button>${pill(status(t.id))}</div>
+  <section><h2>1. Definition</h2><p>${esc(t.definition)}</p></section>
+  <section><h2>2. Explanation in simple words</h2><p>${esc(t.easy)}</p></section>
+  <section><h2>3. Key points to remember</h2><ul>${t.points.map(p=>`<li>${esc(p)}</li>`).join("")}</ul></section>
+  <section><h2>4. Real work scenario</h2><div class="scen">${esc(t.example)}</div></section>
+  <section><h2>5. CSP exam tips and traps</h2><ul class="tipl">${t.tips.map(p=>`<li>${esc(p)}</li>`).join("")}</ul></section>
+  <section><h2>6. Every blueprint point (${nb} blueprint items + ${t.subs.length-nb} more)</h2>
+   <div class="subtools"><button type="button" data-subs="1">Expand all</button><button type="button" data-subs="0">Collapse all</button></div>
+   <div class="subs">${t.subs.map(([n,x,f,tip,bp])=>`<details class="sb"><summary><span>${esc(n)}</span>${bp?'<span class="bptag">Blueprint</span>':""}</summary><p>${esc(x)}</p>${f.length?`<ul>${f.map(y=>`<li>${esc(y)}</li>`).join("")}</ul>`:""}${tip?`<p class="stip"><b>Exam tip:</b> ${esc(tip)}</p>`:""}</details>`).join("")}</div>
+   <p class="muted small">Read more: Yates, Safety Professional's Reference and Study Guide (4th ed.): ${esc(t.yates)}</p></section>
+  <section><h2>7. Ten CSP-style practice questions</h2>
+   <div class="qtools"><span>Score: <span class="qscore" id="qs">0 / 0</span></span><button type="button" data-qall="1">Show all answers</button><button type="button" data-qreset="1">Reset</button></div>
+   ${t.mcq.map(([q,o,k,r],i)=>`<div class="mq" data-k="${k}"><p class="stem"><b>${t.id}-Q${i+1}</b>${esc(q)}</p><div class="opts">${o.map((x,j)=>`<button type="button" class="opt" data-j="${j}"><b>${"ABCD"[j]}</b><span>${esc(x)}</span></button>`).join("")}</div><div class="why" hidden><b>Answer ${"ABCD"[k]}.</b> ${esc(r)}</div></div>`).join("")}</section>
+  <div class="pager">${prev?`<button type="button" data-ngo="${prev.id}">← ${prev.id} ${esc(prev.title)}</button>`:"<span></span>"}${next?`<button type="button" data-ngo="${next.id}">${next.id} ${esc(next.title)} →</button>`:""}</div>`;
+}
+function nSearch(q){
+  const w = q.toLowerCase().split(/\s+/).filter(Boolean), m = s => w.every(x=>s.toLowerCase().includes(x));
+  const hits = [];
+  nList().forEach(t=>{
+    if(m([t.title,t.definition,t.easy,t.example,...t.points,...t.tips].join(" "))) hits.push([t.id,`${t.id} ${t.title}`,"Topic notes",t.definition]);
+    t.subs.forEach(u=>{ const tx=[u[0],u[1],u[3],...u[2]].join(" "); if(m(tx)) hits.push([t.id,`${t.id} · ${u[0]}`,"Blueprint point",u[1]]); });
+    t.mcq.forEach((x,i)=>{ if(m(x[0]+" "+x[1].join(" "))) hits.push([t.id,`${t.id}-Q${i+1}`,"Practice question",x[0]]); });
+  });
+  if(!nDom || true) N.formulas.forEach(([a,b])=>{ if(m(a+" "+b)) hits.push(["formulas",a,"Formula sheet",b]); });
+  return `<span class="eyebrow">Search${nDom?` · Domain ${nDom} only`:""}</span><h1>${hits.length} results for "${esc(q)}"</h1>
+   <div class="hits">${hits.slice(0,80).map(([id,h,k,x])=>`<button type="button" class="hit" data-ngo="${id}"><strong>${hl(h,q)}</strong><small>${k}</small><span>${hl(x.length>220?x.slice(0,220)+"…":x,q)}</span></button>`).join("") || '<p class="muted">Nothing matches. Try a shorter word or choose All domains.</p>'}</div>`;
+}
+function qScore(){ const d=$("nDoc"); const all=d.querySelectorAll(".mq"); const done=[...d.querySelectorAll(".mq[data-done]")]; const ok=done.filter(m=>m.dataset.done==="ok").length; if($("qs")) $("qs").textContent = `${ok} / ${done.length}`;
+  if(done.length===all.length && all.length && N.byId[nCur] && !d.dataset.logged){ d.dataset.logged=1; const t=N.byId[nCur];
+    addAttempt({type:`Topic quiz · ${t.id} ${t.title}`, kind:"topic", c:ok, n:all.length, pct:ok/all.length*100, dom:{[t.d]:[ok,all.length]}, secs:0});
+    $("qs").insertAdjacentHTML("afterend",'<span class="muted small">Saved to My Results</span>'); } }
+$("nDoc").addEventListener("click", e=>{
+  const o = e.target.closest(".opt");
+  if(o){ const m=o.closest(".mq"); if(m.dataset.done) return; const k=+m.dataset.k, j=+o.dataset.j;
+    m.querySelectorAll(".opt").forEach(b=>{ const x=+b.dataset.j; if(x===k) b.classList.add("ok"); else if(x===j) b.classList.add("bad"); b.disabled=true; });
+    m.dataset.done = j===k ? "ok" : "bad"; m.querySelector(".why").hidden=false; qScore(); return; }
+  const b = e.target.closest("button"); if(!b) return;
+  if(b.dataset.subs) $("nDoc").querySelectorAll("details.sb").forEach(d=>d.open = b.dataset.subs==="1");
+  if(b.dataset.qall) $("nDoc").querySelectorAll(".mq").forEach(m=>{ m.querySelector(".why").hidden=false; m.querySelectorAll(".opt").forEach(x=>{ if(+x.dataset.j===+m.dataset.k) x.classList.add("ok"); }); });
+  if(b.dataset.qreset){ nRender(); }
+});
+document.addEventListener("click", e=>{
+  const b = e.target.closest("button"); if(!b || !N) return;
+  if(b.dataset.nd!==undefined){ nDom = +b.dataset.nd; $("nq").value=""; if(nDom){ const f=N.topics.find(t=>t.d===nDom); if(!N.byId[nCur] || N.byId[nCur].d!==nDom) nCur=f.id; } nRender(); window.scrollTo(0,0); }
+  if(b.dataset.ngo){ nCur = b.dataset.ngo; if(N.byId[nCur] && nDom && N.byId[nCur].d!==nDom) nDom = N.byId[nCur].d; $("nq").value=""; nRender(); window.scrollTo(0,0); }
+});
+$("nSel").addEventListener("change", e=>{ nCur = e.target.value; nRender(); window.scrollTo(0,0); });
+let nT; $("nq").addEventListener("input", ()=>{ clearTimeout(nT); nT = setTimeout(nRender, 200); });
+$("nqClear").addEventListener("click", ()=>{ $("nq").value=""; nRender(); });
+
+/* ---------- results log: account storage when available, else this browser ---------- */
+const REC_LS = HK + ".attempts";
+let REC = [], recCol = null, recMode = "local", rRange = 30;
+try{ rRange = +(localStorage.getItem(HK+".range") ?? 30); }catch(e){}
+function lsGet(){ try{ return JSON.parse(localStorage.getItem(REC_LS)) || []; }catch(e){ return []; } }
+function lsSet(){ try{ localStorage.setItem(REC_LS, JSON.stringify(REC)); }catch(e){} }
+const fdate = ts => new Date(ts).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"});
+const ftime = ts => new Date(ts).toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"});
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+function clean(a){ return {id:String(a.id||newId()), ts:+a.ts||Date.now(), type:String(a.type||"Attempt").slice(0,120), kind:a.kind==="topic"?"topic":"exam",
+  c:+a.c||0, n:+a.n||0, pct:+a.pct||0, secs:+a.secs||0, dom:(a.dom&&typeof a.dom==="object")?a.dom:{}}; }
+function backfill(){
+  // bring in mock exams finished before this log existed (once)
+  try{ if(localStorage.getItem(HK+".backfilled")) return; localStorage.setItem(HK+".backfilled","1"); }catch(e){ return; }
+  (appStore().hist||[]).forEach((h,i)=>{ const t = Date.parse(h.date) || Date.now()-((40-i)*60000);
+    REC.push(clean({id:"old"+i+"_"+t, ts:t, type:h.type, c:h.c, n:h.n, pct:h.pct, secs:0, dom:{}, synced:false})); });
+  lsSet();
+}
+async function recPut(a){ if(!recCol) return false; try{ const {synced, ...body} = a; await recCol.doc(a.id).set(body); a.synced = true; lsSet(); return true; }
+  catch(e){ if(e && e.code==="invalid_argument"){ recCol=null; recMode="local"; $("rNote").textContent="Your access level cannot save to your account, so results stay in this browser."; } return false; } }
+async function addAttempt(a){ a = clean(a); a.synced = false; REC.push(a); lsSet(); renderResults(); renderTiles(); await recPut(a); }
+async function recInit(){
+  REC = lsGet().map(x=>Object.assign(clean(x),{synced:!!x.synced})); backfill(); renderResults();
+  if(!window.claude || !claude.use) return;
+  try{
+    const [db, user] = await Promise.all([claude.use("db"), claude.use("user")]); if(!db || !user) return;
+    const uid = await user.id(); if(!uid) return;
+    recCol = db.doc("data/users/"+uid+"/results").collection("attempts");
+    let first = true;
+    recCol.onSnapshot(snap=>{
+      const remote = snap.docs.map(d=>Object.assign(clean(d.data()),{synced:true}));
+      const ids = new Set(remote.map(x=>x.id));
+      const pending = REC.filter(x=>!x.synced && !ids.has(x.id));
+      REC = remote.concat(pending); recMode = "account"; lsSet(); renderResults(); renderTiles();
+      if(first){ first = false; setTimeout(async()=>{ for(const a of pending){ if(!(await recPut(a))) break; } renderResults(); }, 0); }
+    }, ()=>{ recCol = null; recMode = "local"; renderResults(); });
+  }catch(e){}
+}
+window.addEventListener("message", e=>{ const f = document.querySelector("#appHost iframe"); if(!f || e.source !== f.contentWindow) return;
+  const a = e.data && e.data.csp11attempt; if(!a) return;
+  addAttempt({ts:a.ts, type:a.type, kind:"exam", c:a.c, n:a.n, pct:a.pct, secs:a.secs, dom:a.dom}); });
+
+function inRange(){ const cut = rRange ? Date.now() - rRange*864e5 : 0; return REC.filter(a=>a.ts>=cut).sort((x,y)=>x.ts-y.ts); }
+function avg(a){ return a.length ? a.reduce((s,x)=>s+x,0)/a.length : null; }
+function renderResults(){
+  if(!$("rTiles")) return;
+  $("rStore").className = "store" + (recMode==="account" ? " acct" : "");
+  $("rStore").textContent = recMode==="account" ? "Saved to your Claude account" : "Saved in this browser";
+  if(!$("rNote").textContent || recMode==="account") $("rNote").textContent = recMode==="account"
+    ? "Only you can see these results. They follow you to any device where you open this link signed in, until you delete them."
+    : "Only you can see these results. They stay in this browser on this device until you delete them or clear your browser data.";
+  document.querySelectorAll("#rRange button").forEach(b=>b.setAttribute("aria-pressed", +b.dataset.rr===rRange));
+  const R = inRange(), P = R.map(a=>a.pct), ex = R.filter(a=>a.kind==="exam");
+  const days = new Set(R.map(a=>new Date(a.ts).toDateString())).size;
+  const base = ex.length>=2 ? ex : R, delta = base.length>=2 ? base[base.length-1].pct - base[0].pct : null;
+  const dlab = ex.length>=2 ? "points, first to latest mock exam" : "points, first to latest attempt";
+  const t = [[R.length,`attempts (${ex.length} exams, ${R.length-ex.length} topic quizzes)`],[P.length?avg(P).toFixed(0)+"%":"–","average score"],[P.length?Math.max(...P).toFixed(0)+"%":"–","best score"],
+    [P.length?P[P.length-1].toFixed(0)+"%":"–","latest score"],
+    [delta===null?"–":`<span class="${delta>=0?"up":"down"}">${delta>=0?"+":""}${delta.toFixed(0)}</span>`,dlab],
+    [days,"days you practised"]];
+  $("rTiles").innerHTML = t.map(([v,l])=>`<div class="tile"><span class="v">${v}</span><span class="l">${l}</span></div>`).join("");
+  drawChart(R);
+  // domains
+  const half = Math.floor(R.length/2);
+  $("rDoms").innerHTML = DOMS.map(([d,n,w])=>{
+    const sum = arr => { let c=0,k=0; arr.forEach(a=>{ const v=a.dom&&a.dom[d]; if(v){c+=v[0];k+=v[1];} }); return k?{p:c/k*100,k}:null; };
+    const all = sum(R), f = sum(R.slice(0,half)), s2 = sum(R.slice(half));
+    const ch = f && s2 && half ? s2.p - f.p : null;
+    return `<div class="dbar"><span>D${d} ${esc(n)}</span><span class="num">${all?all.p.toFixed(0)+"%":"–"}</span><span class="num small ${ch===null?"muted":ch>=0?"up":"down"}">${ch===null?"–":(ch>=0?"+":"")+ch.toFixed(0)+" pts"}</span>
+      <div class="meter" role="img" aria-label="Domain ${d} average ${all?all.p.toFixed(0):0} percent"><i style="width:${all?all.p:0}%;${all&&all.p<80?"background:var(--amber)":""}"></i></div></div>`;
+  }).join("") + `<p class="muted small" style="margin:8px 0 0">${R.some(a=>Object.keys(a.dom||{}).length) ? "Amber bars are below the 80% target." : "Domain scores appear after your first mock exam or topic quiz."}</p>`;
+  // table
+  const rows = R.slice().reverse();
+  $("rTable").innerHTML = rows.length ? `<table class="h"><thead><tr><th>Date</th><th>Attempt</th><th>Score</th><th>Questions</th><th>Time used</th><th></th></tr></thead><tbody>${rows.map(a=>`<tr>
+     <td class="num">${fdate(a.ts)} <span class="muted">${ftime(a.ts)}</span></td><td>${esc(a.type)}</td>
+     <td class="num"><span class="pill ${a.pct>=80?"p-ok":a.pct>=70?"p-prog":"p-weak"}">${a.pct.toFixed(0)}%</span></td><td class="num">${a.c}/${a.n}</td>
+     <td class="num">${a.secs?Math.floor(a.secs/60)+" min":"–"}</td><td><button type="button" class="rdel" data-rdel="${esc(a.id)}" aria-label="Delete this attempt">Delete</button></td></tr>`).join("")}</tbody></table>`
+    : `<div class="empty">No attempts ${rRange?`in the last ${rRange} days`:"yet"}. Finish a mock exam or drill in Study Guide &amp; Exam, or answer all 10 questions of a topic in Study Notes, and it is saved here automatically.</div>`;
+}
+function drawChart(R){
+  const W=640,H=240,L=36,Rt=12,T=12,B=28, iw=W-L-Rt, ih=H-T-B;
+  if(!R.length){ $("rChart").innerHTML = `<div class="empty">Your score trend appears here after your first attempt.</div>`; return; }
+  const x = i => L + (R.length===1 ? iw/2 : i*iw/(R.length-1)), y = p => T + ih - p/100*ih;
+  let g = [0,20,40,60,80,100].map(v=>`<line class="gl" x1="${L}" x2="${W-Rt}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${L-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`).join("");
+  g += `<line class="tgt" x1="${L}" x2="${W-Rt}" y1="${y(80)}" y2="${y(80)}"/>`;
+  const pts = R.map((a,i)=>[x(i),y(a.pct)]);
+  if(R.length>1) g += `<path class="ar" d="M${pts[0][0]},${y(0)} L${pts.map(p=>p.join(",")).join(" L")} L${pts[pts.length-1][0]},${y(0)} Z"/><path class="ln" d="M${pts.map(p=>p.join(",")).join(" L")}"/>`;
+  const step = Math.max(1, Math.ceil(R.length/6));
+  R.forEach((a,i)=>{ if(i%step===0 || i===R.length-1) g += `<text class="ax" x="${x(i)}" y="${H-8}" text-anchor="middle">${new Date(a.ts).toLocaleDateString(undefined,{day:"numeric",month:"short"})}</text>`; });
+  R.forEach((a,i)=>{ g += `<circle class="dt${a.kind==="topic"?" q":""}" cx="${pts[i][0]}" cy="${pts[i][1]}" r="${i===R.length-1?6:4.5}"/><circle class="hit" data-i="${i}" cx="${pts[i][0]}" cy="${pts[i][1]}" r="12"/>`; });
+  $("rChart").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Score per attempt, ${R.length} attempts">${g}</svg><div class="tip" hidden></div>`;
+  const tip = $("rChart").querySelector(".tip"), svg = $("rChart").querySelector("svg");
+  $("rChart").querySelectorAll(".hit").forEach(c=>{
+    const on = ()=>{ const a=R[+c.dataset.i], r=svg.getBoundingClientRect(), s=r.width/W;
+      tip.innerHTML = `<b>${a.pct.toFixed(0)}%</b> · ${a.c}/${a.n} · ${fdate(a.ts)}<br>${esc(a.type.length>40?a.type.slice(0,40)+"…":a.type)}`;
+      tip.style.left = (+c.getAttribute("cx")*s)+"px"; tip.style.top = (+c.getAttribute("cy")*s)+"px"; tip.hidden=false; };
+    c.addEventListener("mouseenter",on); c.addEventListener("click",on); c.addEventListener("mouseleave",()=>tip.hidden=true); });
+}
+async function recDelete(ids){
+  for(const id of ids){ if(recCol){ try{ await recCol.doc(id).delete(); }catch(e){} } }
+  const s = new Set(ids); REC = REC.filter(a=>!s.has(a.id)); lsSet(); renderResults(); renderTiles();
+}
+document.addEventListener("click", async e=>{
+  const b = e.target.closest("button"); if(!b) return;
+  if(b.dataset.rr!==undefined){ rRange = +b.dataset.rr; try{ localStorage.setItem(HK+".range", rRange); }catch(e){} renderResults(); }
+  if(b.dataset.rdel){ recDelete([b.dataset.rdel]); }
+  if(b.id==="rClear"){ $("rConfirm").innerHTML = `<div class="confirm"><span>Delete all ${REC.length} saved attempts? This cannot be undone.</span><button type="button" class="rdel" id="rYes" style="color:var(--bad);border-color:var(--bad)">Delete all</button><button type="button" class="rdel" id="rNo">Keep them</button></div>`; }
+  if(b.id==="rNo"){ $("rConfirm").innerHTML = ""; }
+  if(b.id==="rYes"){ $("rConfirm").innerHTML = ""; await recDelete(REC.map(a=>a.id)); $("rConfirm").innerHTML = `<p class="muted small">History deleted.</p>`; }
+  if(b.id==="rExport"){
+    const data = JSON.stringify({app:"CSP11 Prep Hub", exported:new Date().toISOString(), attempts:REC.map(({synced,...a})=>a)}, null, 2);
+    const dl = window.claude && claude.use ? await claude.use("downloads") : null;
+    if(!dl){ try{ const u = URL.createObjectURL(new Blob([data],{type:"application/json"})); const l = document.createElement("a"); l.href = u; l.download = "csp11-results.json"; document.body.appendChild(l); l.click(); l.remove(); setTimeout(()=>URL.revokeObjectURL(u), 4000); }catch(err){ $("rConfirm").innerHTML = `<p class="muted small">Saving files is not available here.</p>`; } return; }
+    try{ await dl.save({filename:"csp11-results.json", data}); }catch(err){ if(err && err.code!=="declined") $("rConfirm").innerHTML = `<p class="muted small">The file could not be saved (${esc(err.code||"error")}).</p>`; }
+  }
+});
+$("rImport").addEventListener("change", async e=>{
+  const f = e.target.files[0]; if(!f) return;
+  try{ const j = JSON.parse(await f.text()); const list = Array.isArray(j) ? j : j.attempts || [];
+    const have = new Set(REC.map(a=>a.id)); let k = 0;
+    for(const x of list){ const a = clean(x); if(have.has(a.id)) continue; a.synced=false; REC.push(a); k++; }
+    lsSet(); renderResults(); renderTiles(); $("rConfirm").innerHTML = `<p class="muted small">Imported ${k} attempts.</p>`;
+    for(const a of REC.filter(a=>!a.synced)){ if(!(await recPut(a))) break; }
+  }catch(err){ $("rConfirm").innerHTML = `<p class="muted small">That file is not a CSP11 results export.</p>`; }
+  e.target.value = "";
+});
+
+/* ---------- All MCQs: one question at a time, instant feedback ---------- */
+const MQSRC = {J:"John's bank", R:"My research", T:"Trainer originals", S:"Simulator file", B:"Study book originals"};
+const MQK = HK + ".mcq";
+let MQ = null, mqLoad = null, mqList = [], mqI = 0, mqSess = {c:0,n:0,dom:{},t0:0};
+let MS = {ans:{}, src:"", dom:"", top:"", ord:"seq", q:"", pos:{}, auto:false, seed:1};
+try{ Object.assign(MS, JSON.parse(localStorage.getItem(MQK))||{}); }catch(e){}
+function mqSave(){ try{ localStorage.setItem(MQK, JSON.stringify(MS)); }catch(e){} }
+function mqInit(){
+  if(MQ || mqLoad) return mqLoad;
+  mqLoad = getText("mcqs.json").then(t=>JSON.parse(t)).then(j=>{ MQ = j.map(x=>({id:x[0],src:x[1],d:x[2],t:x[3],q:x[4],o:x[5],k:x[6],r:x[7],calc:x[8]}));
+    $("mqTitle").textContent = `All ${MQ.length.toLocaleString()} MCQs`;
+    $("mqSrc").innerHTML = `<option value="">All sources</option>` + Object.entries(MQSRC).map(([k,v])=>`<option value="${k}">${v} (${MQ.filter(q=>q.src===k).length.toLocaleString()})</option>`).join("");
+    $("mqDom").innerHTML = `<option value="">All domains</option>` + DOMS.map(([d,n])=>`<option value="${d}">D${d} ${esc(n)}</option>`).join("");
+    $("mqSrc").value = MS.src; $("mqDom").value = MS.dom; $("mqOrd").value = MS.ord; $("mqQ").value = MS.q; $("mqAuto").checked = !!MS.auto;
+    mqTopics(); mqFilter(true); }).catch(()=>{ $("mqCard").innerHTML = '<div class="loading">The questions could not load. Reload the page to try again.</div>'; mqLoad = null; });
+  return mqLoad;
+}
+function mqTopics(){ $("mqTop").innerHTML = `<option value="">All topics</option>` + TOPICS.filter(t=>!MS.dom || t[0].startsWith(MS.dom+".")).map(([id,t])=>`<option value="${id}">${id} ${esc(t)}</option>`).join(""); if(![...$("mqTop").options].some(o=>o.value===MS.top)) MS.top=""; $("mqTop").value = MS.top; }
+function rng(seed){ return ()=>{ seed = (seed*1664525 + 1013904223) % 4294967296; return seed/4294967296; }; }
+function fkey(){ return [MS.src,MS.dom,MS.top,MS.ord,MS.q].join("|"); }
+function mqFilter(keepPos){
+  const w = MS.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  let L = MQ.filter(q=>(!MS.src||q.src===MS.src)&&(!MS.dom||q.d===+MS.dom)&&(!MS.top||q.t===MS.top)&&(!w.length||w.every(x=>(q.q+" "+q.o.join(" ")).toLowerCase().includes(x))));
+  if(MS.ord==="calc") L = L.filter(q=>q.calc);
+  if(MS.ord==="new") L = L.filter(q=>!MS.ans[q.id]);
+  if(MS.ord==="wrong") L = L.filter(q=>MS.ans[q.id] && !MS.ans[q.id][1]);
+  if(MS.ord==="shuf"){ const r = rng(MS.seed||1); L = L.map(q=>[r(),q]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]); }
+  mqList = L; mqI = keepPos ? Math.min(MS.pos[fkey()]||0, Math.max(0,L.length-1)) : 0; mqShow();
+}
+function mqStats(){
+  const ans = Object.values(MS.ans), right = ans.filter(a=>a[1]).length;
+  const inF = mqList.filter(q=>MS.ans[q.id]).length;
+  $("mqStats").innerHTML = `<span>In this list: <b>${inF.toLocaleString()}</b> of <b>${mqList.length.toLocaleString()}</b> answered</span><span>All questions: <b>${ans.length.toLocaleString()}</b> of <b>${MQ.length.toLocaleString()}</b> answered, <b>${ans.length?Math.round(right/ans.length*100):0}%</b> correct</span><span>This session: <b>${mqSess.c}/${mqSess.n}</b></span>`;
+  $("mqBar").style.width = (mqList.length ? inF/mqList.length*100 : 0) + "%";
+}
+function mqShow(){
+  mqStats();
+  if(!mqList.length){ $("mqCard").innerHTML = `<div class="empty">${MS.ord==="wrong"?"No wrong answers in this list yet.":MS.ord==="new"?"You have answered every question in this list.":"No questions match these filters."} Change a filter above.</div>`; return; }
+  const q = mqList[mqI], a = MS.ans[q.id], topic = TOPICS.find(t=>t[0]===q.t);
+  MS.pos[fkey()] = mqI; mqSave(); $("mqJump").max = mqList.length; $("mqJump").placeholder = mqI+1;
+  $("mqCard").innerHTML = `<div class="qmeta"><span class="qnum">${(mqI+1).toLocaleString()} / ${mqList.length.toLocaleString()}</span><span class="chip">D${q.d}</span><span class="chip">${esc(q.t)} ${topic?esc(topic[1]):""}</span><span class="chip">${MQSRC[q.src]}</span>${q.calc?'<span class="chip">Calculation</span>':""}</div>
+    <p class="qstem">${esc(q.q)}</p>
+    <div class="qopts">${q.o.map((o,j)=>`<button type="button" class="qopt" data-qj="${j}"><b>${"ABCD"[j]}</b><span>${esc(o)}</span></button>`).join("")}</div>
+    <div id="mqWhy"></div>`;
+  if(a) mqMark(q, a[0], false);
+}
+function mqMark(q, j, fresh){
+  const ok = j===q.k;
+  $("mqCard").querySelectorAll(".qopt").forEach(b=>{ const x=+b.dataset.qj; if(x===q.k) b.classList.add("ok"); else if(x===j) b.classList.add("bad"); b.disabled = true; });
+  $("mqWhy").innerHTML = `<div class="verdict ${ok?"ok":"bad"}" role="status"><strong>${ok?"Correct":"Not quite"}${fresh?"":" (answered before)"}</strong>
+    <span><b>Answer ${"ABCD"[q.k]}:</b> ${esc(q.o[q.k])}</span>${q.r?`<span>${esc(q.r)}</span>`:`<span class="muted">Review this topic in Study Notes for the full explanation.</span>`}
+    <span><button type="button" class="chip" data-book="${q.t}">Read topic ${esc(q.t)} in Study Notes</button></span></div>`;
+  if(fresh){
+    MS.ans[q.id] = [j, ok?1:0]; mqSave();
+    if(!mqSess.n) mqSess.t0 = Date.now();
+    mqSess.n++; if(ok) mqSess.c++; const d = mqSess.dom[q.d] = mqSess.dom[q.d] || [0,0]; d[1]++; if(ok) d[0]++;
+    mqStats(); $("mqNext").focus({preventScroll:true});
+    if(ok && MS.auto) setTimeout(()=>{ if(mqList[mqI]===q) mqGo(1); }, 1200);
+  }
+}
+function mqGo(dx){ if(!mqList.length) return; mqI = Math.max(0, Math.min(mqList.length-1, mqI+dx)); mqShow(); $("mqCard").scrollIntoView({block:"nearest"}); }
+$("mqCard").addEventListener("click", e=>{ const b = e.target.closest(".qopt"); if(!b || b.disabled) return; mqMark(mqList[mqI], +b.dataset.qj, true); });
+$("mqPrev").onclick = ()=>mqGo(-1); $("mqNext").onclick = ()=>mqGo(1);
+$("mqJump").addEventListener("change", e=>{ const n = +e.target.value; if(n>=1 && n<=mqList.length){ mqI = n-1; mqShow(); } e.target.value=""; });
+["mqSrc","mqDom","mqTop","mqOrd"].forEach(id=>$(id).addEventListener("change", e=>{
+  const k = {mqSrc:"src",mqDom:"dom",mqTop:"top",mqOrd:"ord"}[id]; MS[k] = e.target.value;
+  if(id==="mqDom") mqTopics(); if(id==="mqOrd" && MS.ord==="shuf") MS.seed = Math.floor(Math.random()*1e9)+1;
+  mqSave(); mqFilter(MS.ord!=="new" && MS.ord!=="wrong"); }));
+let mqT; $("mqQ").addEventListener("input", e=>{ clearTimeout(mqT); mqT = setTimeout(()=>{ MS.q = e.target.value; mqSave(); mqFilter(false); }, 250); });
+$("mqAuto").addEventListener("change", e=>{ MS.auto = e.target.checked; mqSave(); });
+$("mqSave").onclick = async ()=>{
+  if(mqSess.n < 5){ $("mqMsg").innerHTML = `<p class="muted small">Answer at least 5 questions in this session first (you have ${mqSess.n}).</p>`; return; }
+  const label = ["MCQ practice", MS.src?MQSRC[MS.src]:"", MS.dom?`D${MS.dom}`:"", MS.top||""].filter(Boolean).join(" · ");
+  await addAttempt({type:label, kind:"exam", c:mqSess.c, n:mqSess.n, pct:mqSess.c/mqSess.n*100, dom:mqSess.dom, secs:Math.round((Date.now()-mqSess.t0)/1000)});
+  $("mqMsg").innerHTML = `<p class="small">Saved ${mqSess.c}/${mqSess.n} (${Math.round(mqSess.c/mqSess.n*100)}%) to My Results. A new session has started.</p>`;
+  mqSess = {c:0,n:0,dom:{},t0:0}; mqStats();
+};
+$("mqReset").onclick = ()=>{ $("mqMsg").innerHTML = `<div class="confirm"><span>Clear all ${Object.keys(MS.ans).length.toLocaleString()} saved answers? Your saved sessions in My Results stay.</span><button type="button" class="rdel" id="mqYes" style="color:var(--bad);border-color:var(--bad)">Clear answers</button><button type="button" class="rdel" id="mqNo">Keep them</button></div>`; };
+$("mqMsg").addEventListener("click", e=>{ if(e.target.id==="mqNo") $("mqMsg").innerHTML=""; if(e.target.id==="mqYes"){ MS.ans = {}; MS.pos = {}; mqSave(); $("mqMsg").innerHTML = `<p class="muted small">Answers cleared.</p>`; mqFilter(false); } });
+document.addEventListener("keydown", e=>{
+  if($("v-mcq").hidden || !MQ || e.ctrlKey || e.metaKey || e.altKey) return;
+  if(["INPUT","SELECT","TEXTAREA"].includes(document.activeElement.tagName)) return;
+  const k = e.key.toUpperCase(), m = {A:0,B:1,C:2,D:3,"1":0,"2":1,"3":2,"4":3}[k];
+  if(m!==undefined){ const b = $("mqCard").querySelector(`.qopt[data-qj="${m}"]`); if(b && !b.disabled){ b.click(); e.preventDefault(); } }
+  else if(e.key==="ArrowRight" || (e.key==="Enter" && document.activeElement.tagName!=="BUTTON")){ mqGo(1); e.preventDefault(); }
+  else if(e.key==="ArrowLeft"){ mqGo(-1); e.preventDefault(); }
+});
+
+$("bookJump").innerHTML += TOPICS.map(([id,t,pg])=>`<option value="${id}">${id} ${esc(t)} (p. ${pg})</option>`).join("");
+$("dStart").value = S.start; $("dExam").value = S.exam;
+recInit(); renderAll(); applyTheme();
+let first = (location.hash||"").slice(1);
+if(!["home","notes","mcq","res","book","app"].includes(first)){ try { first = localStorage.getItem(HK+".view") || "home"; } catch(e){ first = "home"; } }
+show(["home","notes","mcq","res","book","app"].includes(first) ? first : "home");
+</script>
+
+</body>
+</html>
